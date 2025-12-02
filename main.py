@@ -1,4 +1,5 @@
 from sys import exit as sysexit
+from sys import stdin
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PySide6.QtCore import Slot
@@ -34,7 +35,9 @@ class MainWindow(QMainWindow):
         # mqtt subscription
         self.start_time = None
         self.is_simulated = True
-
+        self.thread = MQTTDataFeed(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE, MQTT_TOPIC)
+        self.thread.signal.connect(self.message_callback)
+        self.thread.start()
         
 
 
@@ -86,7 +89,9 @@ class MainWindow(QMainWindow):
 
     # mqtt data feed
     def message_callback(self, loaded_msg):
+        self.ui.setpointLabel.setText(repr(loaded_msg))
         parsed_data = DataParser(self.is_simulated, loaded_msg)
+        print(loaded_msg, file=stdin)
 
         if not self.start_time:
             self.start_time = parsed_data.get_start_time()
@@ -101,7 +106,9 @@ class MainWindow(QMainWindow):
             plotitem = graph.getPlotItem()
             plotitem.plot((parsed_data.get_end_time()-self.start_time, parsed_data.get_stat_mean(stat)))
 
-
+    def closeEvent(self, event):
+        self.thread.stop()
+        return super().closeEvent(event)
     # ## --undo redo--
     # @Slot()
     # def undo_move(self):

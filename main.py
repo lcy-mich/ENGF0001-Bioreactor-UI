@@ -8,8 +8,7 @@ from collections import deque
 
 from BioMainWindow import Ui_MainWindow as BioMainWindow
 
-from DataFeed import MQTTDataFeed
-from DataParser import DataParser
+from DataFeed import DataParser, MQTTDataFeed
 
 from settings import *
 from json import dumps
@@ -35,7 +34,8 @@ class MainWindow(QMainWindow):
         # mqtt subscription
         self.start_time = None
         self.is_simulated = True
-        MQTTDataFeed(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE, MQTT_TOPIC, self.message_callback)
+
+        
 
 
         self.ui = BioMainWindow()
@@ -98,8 +98,8 @@ class MainWindow(QMainWindow):
             self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
         
         for stat, graph in self.StatToGraph.items():
-            
-            graph..PlotDataItem(parsed_data.get_end_time(), parsed_data.get_stat_mean(stat))
+            plotitem = graph.getPlotItem()
+            plotitem.plot((parsed_data.get_end_time()-self.start_time, parsed_data.get_stat_mean(stat)))
 
 
     # ## --undo redo--

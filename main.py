@@ -1,28 +1,69 @@
 from sys import exit as sysexit
-from sys import stdin
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PySide6.QtWidgets import QAbstractSlider
 from PySide6.QtCore import Slot
+
 import pyqtgraph as qtgraph
 
-from collections import deque
-
-from BioMainWindow import Ui_MainWindow as BioMainWindow
+from ui.main_ui import Ui_MainWindow
+from InitialDialog import InitialDialog
 
 from DataFeed import DataParser, MQTTDataFeed
+from time import time as get_time
 
 from settings import *
 from json import dumps
-
-from pprint import pprint
 
 class InvalidStatName(Exception):
     pass
 
 class MainWindow(QMainWindow):
 
-    def __init__(self):
+
+    @Slot()
+    def initialInfoSetup(self):
+
+        if hasattr(self, "DataFeed"):
+            self.DataFeed.terminate()
+            del self.DataFeed
+
+        self.initialDialog.exec()
+        self.host = self.initialDialog.ui.hostLine.text()
+        self.port = int(self.initialDialog.ui.portLine.text())
+        self.keep_alive = int(self.initialDialog.ui.keepaliveLine.text())
+        self.topic = self.initialDialog.ui.topicLine.text()
+        self.is_simulated = self.initialDialog.ui.isSimulatedCheckBox.isChecked()
+
+        # mqtt subscription
+        self.start_time = None
+        self.DataFeed = MQTTDataFeed(self.host, self.port, self.keep_alive, self.topic, self)
+
+        self.DataFeed.signal.connect(self.message_callback)
+        self.DataFeed.start()
+
+        if hasattr(self.ui, "setpointSlider"):
+            self.ui.setpointSlider.setEnabled(not self.is_simulated)
+            for graph in self.StatToGraph.values():
+                graph.getPlotItem().clear()
+
+        self.setpoints = {
+            Stat.Temperature : self.convertForSlider(Stat.Temperature), 
+            Stat.Acidity : self.convertForSlider(Stat.Acidity), 
+            Stat.Stirring : self.convertForSlider(Stat.Stirring)
+            }
+
+        self.datapoints = {
+            Stat.Temperature.value : {"x":[], "y":[]},
+            Stat.Acidity.value : {"x":[], "y":[]},
+            Stat.Stirring.value : {"x":[], "y":[]}
+        }
+
+
+
+    def __init__(self, parent=None):
         super().__init__()
+
 
         qtgraph.setConfigOptions(
             background = (234, 237, 245), 
@@ -32,35 +73,19 @@ class MainWindow(QMainWindow):
             useNumba = USE_NUMBA,
         )
 
-        # mqtt subscription
-        self.start_time = None
-        self.is_simulated = True
-        self.thread = MQTTDataFeed(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE, MQTT_TOPIC)
-        self.thread.signal.connect(self.message_callback)
-        self.thread.start()
+
+        self.ui = Ui_MainWindow()
+
+        self.initialDialog = InitialDialog()
+        self.initialInfoSetup()
+
+        self.ui.setupUi(self)       
         
-
-
-        self.ui = BioMainWindow()
-        self.ui.setupUi(self)
-
-        self.setpoints = {
-            Stat.Temperature : self.convertForSlider(Stat.Temperature), 
-            Stat.Acidity : self.convertForSlider(Stat.Acidity), 
-            Stat.Stirring : self.convertForSlider(Stat.Stirring)
-            }
-
-        self.datapoints = {
-            Stat.Temperature : [],
-            Stat.Acidity : [],
-            Stat.Stirring : []
-        }
+        self.ui.setpointSlider.valueChanged.connect(self.sliderValueChange)
+        self.ui.setpointSlider.sliderReleased.connect(self.sliderInteraction)
+        self.ui.setpointSlider.actionTriggered.connect(self.sliderInteraction)
 
         self.StatToGraph = {Stat.Acidity:self.ui.phGraph, Stat.Temperature:self.ui.heatingGraph, Stat.Stirring:self.ui.stirringGraph}
-
-        self.ui.setpointSlider.valueChanged.connect(self.sliderValueChange)
-
-
         for stat, graph in self.StatToGraph.items():
             plotitem : qtgraph.PlotItem = graph.getPlotItem() # type: ignore
             y_axis = plotitem.getAxis("left")
@@ -68,6 +93,7 @@ class MainWindow(QMainWindow):
 
             plotitem.getAxis("bottom").setLabel("Time (seconds)")
 
+        self.ui.setpointSlider.setEnabled(not self.is_simulated)
 
         self.ui.phButton.toggled.connect(self.phButtonToggled)
         self.ui.heatingButton.toggled.connect(self.tempButtonToggled)
@@ -79,6 +105,8 @@ class MainWindow(QMainWindow):
         self.ui.actionSave.setStatusTip(ACTION_SAVE_STATUS_TIP)
         self.ui.actionSave.triggered.connect(self.save_file)
 
+        self.ui.actionChange_Connection.triggered.connect(self.initialInfoSetup)
+
         # self.ui.actionUndo.setShortcut(UNDO_SHORTCUT)
         # self.ui.actionUndo.triggered.connect(self.undo_move)
 
@@ -89,12 +117,14 @@ class MainWindow(QMainWindow):
 
     # mqtt data feed
     def message_callback(self, loaded_msg):
-        self.ui.setpointLabel.setText(repr(loaded_msg))
+        # self.ui.setpointLabel.setText(repr(loaded_msg))
+        if isinstance(loaded_msg, dict) and len(loaded_msg) == 2:
+            return
+        
         parsed_data = DataParser(self.is_simulated, loaded_msg)
-        print(loaded_msg, file=stdin)
 
         if not self.start_time:
-            self.start_time = parsed_data.get_start_time()
+            self.start_time = parsed_data.get_start_time() if self.is_simulated else get_time()
 
         parsed_setpoints = parsed_data.get_setpoints()
         if self.setpoints != parsed_setpoints:
@@ -102,12 +132,22 @@ class MainWindow(QMainWindow):
 
             self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
         
+        # if self.is_simulated:
+            # print(loaded_msg)
+        
         for stat, graph in self.StatToGraph.items():
             plotitem = graph.getPlotItem()
-            plotitem.plot((parsed_data.get_end_time()-self.start_time, parsed_data.get_stat_mean(stat)))
+
+            time = parsed_data.get_end_time()-self.start_time if self.is_simulated else get_time()
+
+            datum = parsed_data.get_stat(stat)
+
+            self.datapoints[stat.value]["x"].append(time)
+            self.datapoints[stat.value]["y"].append(datum)
+            plotitem.plot(self.datapoints[stat.value], clear = True, pen=qtgraph.mkPen((130,130,180),width = 2))
 
     def closeEvent(self, event):
-        self.thread.stop()
+        self.DataFeed.terminate()
         return super().closeEvent(event)
     # ## --undo redo--
     # @Slot()
@@ -176,6 +216,16 @@ class MainWindow(QMainWindow):
             self.convertForSlider(stat, Info[stat]["Range"]["Low"]), 
             self.convertForSlider(stat, Info[stat]["Range"]["High"])
             )
+        
+    @Slot()
+    def sliderInteraction(self, action=None):
+        if action == 7: #7 seems to be the enum val of SliderMove
+            return
+        self.setpoints[self.currentStat] = self.ui.setpointSlider.value()
+        if not self.is_simulated:
+            print("uploaded")
+            self.DataFeed.publish_change(self.currentStat, self.convertFromSlider())
+        print(self.convertFromSlider())
 
     @Slot(float)
     def sliderValueChange(self, value):
@@ -184,7 +234,7 @@ class MainWindow(QMainWindow):
         elif value < self.convertForSlider(self.currentStat, Info[self.currentStat]["Range"]["Low"]):
             self.ui.setpointSlider.setValue(self.convertForSlider(self.currentStat, Info[self.currentStat]["Range"]["Low"]))
         # self.undobuffer.append((self.currentStat, self.ui.setpointSlider.value()))
-        self.setpoints[self.currentStat] = self.ui.setpointSlider.value()
+        
         self.ui.setpointLabel.setText(f"{self.convertFromSlider():.{Info[self.currentStat]["DecimalPlaces"]}f} {Info[self.currentStat]["Unit"]}")
 
     @Slot(bool)
@@ -202,13 +252,14 @@ class MainWindow(QMainWindow):
 
 
 
+
     
 
 
 if __name__ == "__main__":
     app = QApplication()
 
-    main = MainWindow()
+    main = MainWindow(app)
     main.show()
 
     sysexit(app.exec())

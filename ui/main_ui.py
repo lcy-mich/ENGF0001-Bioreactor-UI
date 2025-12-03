@@ -16,9 +16,10 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLayout,
-    QMainWindow, QMenu, QMenuBar, QRadioButton,
-    QSizePolicy, QSlider, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDoubleSpinBox, QHBoxLayout,
+    QLabel, QLayout, QMainWindow, QMenu,
+    QMenuBar, QRadioButton, QSizePolicy, QSlider,
+    QVBoxLayout, QWidget)
 
 from pyqtgraph import PlotWidget
 
@@ -66,6 +67,8 @@ class Ui_MainWindow(object):
         self.actionQuit.setObjectName(u"actionQuit")
         self.actionReset_To_Default = QAction(MainWindow)
         self.actionReset_To_Default.setObjectName(u"actionReset_To_Default")
+        self.actionChange_Connection = QAction(MainWindow)
+        self.actionChange_Connection.setObjectName(u"actionChange_Connection")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.centralWidget.setEnabled(True)
@@ -125,14 +128,18 @@ class Ui_MainWindow(object):
         self.setpointWidget.setObjectName(u"setpointWidget")
         self.setpointWidget.setMinimumSize(QSize(2000, 50))
         self.setpointWidget.setMaximumSize(QSize(16777215, 16777215))
-        self.verticalLayoutWidget_2 = QWidget(self.setpointWidget)
-        self.verticalLayoutWidget_2.setObjectName(u"verticalLayoutWidget_2")
-        self.verticalLayoutWidget_2.setGeometry(QRect(-1, -1, 1121, 53))
-        self.setpointLayout = QVBoxLayout(self.verticalLayoutWidget_2)
+        self.horizontalLayoutWidget_3 = QWidget(self.setpointWidget)
+        self.horizontalLayoutWidget_3.setObjectName(u"horizontalLayoutWidget_3")
+        self.horizontalLayoutWidget_3.setGeometry(QRect(0, 0, 1121, 71))
+        self.horizontalLayout = QHBoxLayout(self.horizontalLayoutWidget_3)
+        self.horizontalLayout.setSpacing(0)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(10, 0, 10, 0)
+        self.setpointLayout = QVBoxLayout()
         self.setpointLayout.setSpacing(0)
         self.setpointLayout.setObjectName(u"setpointLayout")
-        self.setpointLayout.setContentsMargins(20, 0, 20, 0)
-        self.setpointSlider = QSlider(self.verticalLayoutWidget_2)
+        self.setpointLayout.setContentsMargins(20, -1, 20, -1)
+        self.setpointSlider = QSlider(self.horizontalLayoutWidget_3)
         self.setpointSlider.setObjectName(u"setpointSlider")
         self.setpointSlider.setMinimumSize(QSize(1000, 0))
         self.setpointSlider.setMaximumSize(QSize(16777215, 16777215))
@@ -147,7 +154,7 @@ class Ui_MainWindow(object):
 
         self.setpointLayout.addWidget(self.setpointSlider, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignBottom)
 
-        self.setpointLabel = QLabel(self.verticalLayoutWidget_2)
+        self.setpointLabel = QLabel(self.horizontalLayoutWidget_3)
         self.setpointLabel.setObjectName(u"setpointLabel")
         self.setpointLabel.setMaximumSize(QSize(920, 25))
         font2 = QFont()
@@ -158,6 +165,27 @@ class Ui_MainWindow(object):
         self.setpointLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.setpointLayout.addWidget(self.setpointLabel, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignTop)
+
+
+        self.horizontalLayout.addLayout(self.setpointLayout)
+
+        self.setpointTolerance = QDoubleSpinBox(self.horizontalLayoutWidget_3)
+        self.setpointTolerance.setObjectName(u"setpointTolerance")
+        self.setpointTolerance.setMinimumSize(QSize(15, 50))
+        self.setpointTolerance.setMaximumSize(QSize(16777215, 16777215))
+        self.setpointTolerance.setStyleSheet(u"font: 12pt \"Noto Sans SC\";")
+        self.setpointTolerance.setWrapping(False)
+        self.setpointTolerance.setFrame(False)
+        self.setpointTolerance.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+        self.setpointTolerance.setReadOnly(False)
+        self.setpointTolerance.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.UpDownArrows)
+        self.setpointTolerance.setAccelerated(True)
+        self.setpointTolerance.setCorrectionMode(QAbstractSpinBox.CorrectionMode.CorrectToNearestValue)
+        self.setpointTolerance.setDecimals(1)
+        self.setpointTolerance.setMaximum(1.000000000000000)
+        self.setpointTolerance.setSingleStep(0.100000000000000)
+
+        self.horizontalLayout.addWidget(self.setpointTolerance, 0, Qt.AlignmentFlag.AlignTop)
 
 
         self.mainLayout.addWidget(self.setpointWidget)
@@ -216,6 +244,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addSeparator()
+        self.menuFile.addAction(self.actionChange_Connection)
         self.menuFile.addAction(self.actionQuit)
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
@@ -238,10 +267,12 @@ class Ui_MainWindow(object):
         self.actionSaveAs.setText(QCoreApplication.translate("MainWindow", u"Save As...", None))
         self.actionQuit.setText(QCoreApplication.translate("MainWindow", u"Quit", None))
         self.actionReset_To_Default.setText(QCoreApplication.translate("MainWindow", u"Reset To Defaults", None))
+        self.actionChange_Connection.setText(QCoreApplication.translate("MainWindow", u"Change Connection", None))
         self.heatingButton.setText(QCoreApplication.translate("MainWindow", u"Heating", None))
         self.stirringButton.setText(QCoreApplication.translate("MainWindow", u"Stirring", None))
         self.phButton.setText(QCoreApplication.translate("MainWindow", u"Acidity", None))
         self.setpointLabel.setText(QCoreApplication.translate("MainWindow", u"0\u2103", None))
+        self.setpointTolerance.setPrefix(QCoreApplication.translate("MainWindow", u"\u00b1", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuEdit.setTitle(QCoreApplication.translate("MainWindow", u"Edit", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))

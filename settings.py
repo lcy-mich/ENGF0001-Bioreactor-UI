@@ -3,6 +3,7 @@ from enum import Enum
 MQTT_HOST = "engf0001.cs.ucl.ac.uk"
 MQTT_PORT = 1883
 MQTT_TOPIC = "bioreactor_sim/nofaults/telemetry/summary"
+MQTT_PUBLISH_TOPIC = "bioreactor/sensor/data"
 MQTT_KEEPALIVE = 60
 
 USE_OPENGL = True
@@ -19,11 +20,11 @@ ACTION_SAVE_STATUS_TIP = "Save the bioreactor data into a JSON file"
 
 class Stat(Enum):
 
-    Acidity = "Acidity"
+    Acidity = "ph"
     
-    Temperature = "Temperature"
+    Temperature = "temperature"
     
-    Stirring = "Stirring"
+    Stirring = "stirring"
 
 Info = {
     Stat.Acidity : {

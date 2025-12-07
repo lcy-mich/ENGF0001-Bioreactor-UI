@@ -12,13 +12,15 @@ class DataParser:
     
     def __init__(self, is_simulated, data):
         self.raw_data = data
+        print(data)
         self.is_simulated = is_simulated
     
     def get_setpoints(self):
-        raw_setpoints = self.raw_data["setpoints"]
-        ph = raw_setpoints["pH"]
-        rpm = raw_setpoints["rpm"]
-        temp = raw_setpoints["temperature_C"]
+        if self.is_simulated: 
+            raw_setpoints = self.raw_data["setpoints"]
+            ph = raw_setpoints["pH"]
+            rpm = raw_setpoints["rpm"]
+            temp = raw_setpoints["temperature_C"]
 
         return {Stat.Acidity : ph, Stat.Temperature : temp, Stat.Stirring : rpm}
     
@@ -31,9 +33,11 @@ class DataParser:
             }[stat]
             
             return self.raw_data[stat_name]["mean"]
-        for stat_data in self.raw_data[0]:
-            if stat_data["Subsystem"] == stat.value:
-                return stat_data["Value"]
+        
+        for (stat_name, stat_data) in self.raw_data.items():
+            print(stat_name, stat.value)
+            if stat_name == stat.value:
+                return float(stat_data)
     
     def get_start_time(self):
         return self.raw_data["window"]["start"]
@@ -73,10 +77,12 @@ class MQTTDataFeed(QThread):
             print(f"Failed")
     
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        print(f"Connection succeeded with result code : {reason_code}")
+        print(f"Connection succeeded with result code : {reason_code}, to topic {self.topic}")
         self.client.subscribe(self.topic)
 
     def on_message(self, client, userdata, msg):
+        print(msg.payload)
+    
         self.signal.emit(loads(msg.payload))
     
     def __del__(self):

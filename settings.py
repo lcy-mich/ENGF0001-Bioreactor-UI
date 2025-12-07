@@ -1,10 +1,13 @@
 from enum import Enum
 
-MQTT_HOST = "engf0001.cs.ucl.ac.uk"
+MQTT_HOST = "broker.hivemq.com"
+# MQTT_HOST = "engf0001.cs.ucl.ac.uk"
 MQTT_PORT = 1883
-MQTT_TOPIC = "bioreactor_sim/nofaults/telemetry/summary"
-MQTT_PUBLISH_TOPIC = "bioreactor/sensor/data"
+MQTT_TOPIC = "bioreactor/sensor/data"
+# MQTT_TOPIC = "bioreactor_sim/nofaults/telemetry/summary"
+MQTT_PUBLISH_TOPIC = "bioreactor/control"
 MQTT_KEEPALIVE = 60
+MQTT_IS_SIM = False
 
 USE_OPENGL = True
 USE_NUMBA = True
@@ -22,7 +25,7 @@ class Stat(Enum):
 
     Acidity = "ph"
     
-    Temperature = "temperature"
+    Temperature = "temp"
     
     Stirring = "stirring"
 

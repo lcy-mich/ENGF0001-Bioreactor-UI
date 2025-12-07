@@ -29,6 +29,9 @@ class MainWindow(QMainWindow):
             del self.DataFeed
 
         self.initialDialog.exec()
+        if not self.initialDialog.succeed:
+            self.close()
+
         self.host = self.initialDialog.ui.hostLine.text()
         self.port = int(self.initialDialog.ui.portLine.text())
         self.keep_alive = int(self.initialDialog.ui.keepaliveLine.text())
@@ -42,11 +45,6 @@ class MainWindow(QMainWindow):
         self.DataFeed.signal.connect(self.message_callback)
         self.DataFeed.start()
 
-        if hasattr(self.ui, "setpointSlider"):
-            self.ui.setpointSlider.setEnabled(not self.is_simulated)
-            for graph in self.StatToGraph.values():
-                graph.getPlotItem().clear()
-
         self.setpoints = {
             Stat.Temperature : self.convertForSlider(Stat.Temperature), 
             Stat.Acidity : self.convertForSlider(Stat.Acidity), 
@@ -59,7 +57,10 @@ class MainWindow(QMainWindow):
             Stat.Stirring.value : {"x":[], "y":[]}
         }
 
-
+        if hasattr(self.ui, "setpointSlider"):
+            self.ui.setpointSlider.setEnabled(not self.is_simulated)
+            for graph in self.StatToGraph.values():
+                graph.getPlotItem().clear()
 
     def __init__(self, parent=None):
         super().__init__()
@@ -125,29 +126,31 @@ class MainWindow(QMainWindow):
 
         if not self.start_time:
             self.start_time = parsed_data.get_start_time() if self.is_simulated else get_time()
+        if self.is_simulated:
+            parsed_setpoints = parsed_data.get_setpoints()
+            if self.setpoints != parsed_setpoints:
+                self.setpoints = parsed_setpoints
 
-        parsed_setpoints = parsed_data.get_setpoints()
-        if self.setpoints != parsed_setpoints:
-            self.setpoints = parsed_setpoints
-
-            self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
-        
+                self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
+            
         # if self.is_simulated:
             # print(loaded_msg)
         
         for stat, graph in self.StatToGraph.items():
             plotitem = graph.getPlotItem()
 
-            time = parsed_data.get_end_time()-self.start_time if self.is_simulated else get_time()
+            time = parsed_data.get_end_time() if self.is_simulated else get_time() - self.start_time
 
             datum = parsed_data.get_stat(stat)
+            # print(datum, time)
 
             self.datapoints[stat.value]["x"].append(time)
             self.datapoints[stat.value]["y"].append(datum)
             plotitem.plot(self.datapoints[stat.value], clear = True, pen=qtgraph.mkPen((130,130,180),width = 2))
 
     def closeEvent(self, event):
-        self.DataFeed.terminate()
+        if hasattr(self, "DataFeed"):   
+            self.DataFeed.terminate()
         return super().closeEvent(event)
     # ## --undo redo--
     # @Slot()
@@ -223,9 +226,9 @@ class MainWindow(QMainWindow):
             return
         self.setpoints[self.currentStat] = self.ui.setpointSlider.value()
         if not self.is_simulated:
-            print("uploaded")
+            # print("uploaded")
             self.DataFeed.publish_change(self.currentStat, self.convertFromSlider())
-        print(self.convertFromSlider())
+        # print(self.convertFromSlider())
 
     @Slot(float)
     def sliderValueChange(self, value):

@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDialog, QDialogButtonBox
 from PySide6.QtCore import Slot, Signal
 
-from settings import MQTT_HOST, MQTT_KEEPALIVE, MQTT_PORT, MQTT_TOPIC
+from settings import MQTT_HOST, MQTT_KEEPALIVE, MQTT_PORT, MQTT_TOPIC, MQTT_IS_SIM
 
 from ui.initialdialog_ui import Ui_Dialog
 
@@ -16,13 +16,20 @@ class InitialDialog(QDialog):
         self.ui.setupUi(self)
 
         self.rejectedHandler()
+        self.succeed = False
 
-        self.ui.decisionBox.accepted.connect(self.close)
+        self.ui.decisionBox.accepted.connect(self.acceptHandler)
         self.ui.decisionBox.rejected.connect(self.rejectedHandler)
+        self.ui.isSimulatedCheckBox.setChecked(MQTT_IS_SIM)
 
         self.ui.decisionBox.addButton("Connect", QDialogButtonBox.ButtonRole.AcceptRole)
         self.ui.decisionBox.addButton("Reset Information", QDialogButtonBox.ButtonRole.RejectRole)
 
+    @Slot()
+    def acceptHandler(self):
+        self.succeed = True
+        self.close()
+    
     
     @Slot()
     def rejectedHandler(self):

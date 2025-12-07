@@ -23,14 +23,13 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def initialInfoSetup(self):
+        self.initialDialog.exec()
+        if not self.initialDialog.succeed:
+            return False
 
         if hasattr(self, "DataFeed"):
             self.DataFeed.terminate()
             del self.DataFeed
-
-        self.initialDialog.exec()
-        if not self.initialDialog.succeed:
-            self.close()
 
         self.host = self.initialDialog.ui.hostLine.text()
         self.port = int(self.initialDialog.ui.portLine.text())
@@ -61,7 +60,9 @@ class MainWindow(QMainWindow):
             self.ui.setpointSlider.setEnabled(not self.is_simulated)
             for graph in self.StatToGraph.values():
                 graph.getPlotItem().clear()
-
+    
+        return True
+    
     def __init__(self, parent=None):
         super().__init__()
 
@@ -78,7 +79,9 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
 
         self.initialDialog = InitialDialog()
-        self.initialInfoSetup()
+        if not self.initialInfoSetup():
+            self.close()
+            return
 
         self.ui.setupUi(self)       
         
@@ -119,34 +122,37 @@ class MainWindow(QMainWindow):
     # mqtt data feed
     def message_callback(self, loaded_msg):
         # self.ui.setpointLabel.setText(repr(loaded_msg))
-        if isinstance(loaded_msg, dict) and len(loaded_msg) == 2:
-            return
-        
-        parsed_data = DataParser(self.is_simulated, loaded_msg)
-
-        if not self.start_time:
-            self.start_time = parsed_data.get_start_time() if self.is_simulated else get_time()
-        if self.is_simulated:
-            parsed_setpoints = parsed_data.get_setpoints()
-            if self.setpoints != parsed_setpoints:
-                self.setpoints = parsed_setpoints
-
-                self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
+        try:
+            if isinstance(loaded_msg, dict) and len(loaded_msg) == 2:
+                return
             
-        # if self.is_simulated:
-            # print(loaded_msg)
-        
-        for stat, graph in self.StatToGraph.items():
-            plotitem = graph.getPlotItem()
+            parsed_data = DataParser(self.is_simulated, loaded_msg)
 
-            time = parsed_data.get_end_time() if self.is_simulated else get_time() - self.start_time
+            if not self.start_time:
+                self.start_time = parsed_data.get_start_time() if self.is_simulated else get_time()
+            if self.is_simulated:
+                parsed_setpoints = parsed_data.get_setpoints()
+                if self.setpoints != parsed_setpoints:
+                    self.setpoints = parsed_setpoints
 
-            datum = parsed_data.get_stat(stat)
-            # print(datum, time)
+                    self.ui.setpointSlider.setValue(self.setpoints[self.currentStat])
+                
+            # if self.is_simulated:
+                # print(loaded_msg)
+            
+            for stat, graph in self.StatToGraph.items():
+                plotitem = graph.getPlotItem()
 
-            self.datapoints[stat.value]["x"].append(time)
-            self.datapoints[stat.value]["y"].append(datum)
-            plotitem.plot(self.datapoints[stat.value], clear = True, pen=qtgraph.mkPen((130,130,180),width = 2))
+                time = (parsed_data.get_end_time() if self.is_simulated else get_time()) - self.start_time
+
+                datum = parsed_data.get_stat(stat)
+                # print(datum, time)
+
+                self.datapoints[stat.value]["x"].append(time)
+                self.datapoints[stat.value]["y"].append(datum)
+                plotitem.plot(self.datapoints[stat.value], clear = True, pen=qtgraph.mkPen((130,130,180),width = 2))
+        except Exception as e:
+            print(f"Error: {e}")
 
     def closeEvent(self, event):
         if hasattr(self, "DataFeed"):   

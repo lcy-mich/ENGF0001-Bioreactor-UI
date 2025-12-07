@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
             time = parsed_data.get_end_time() if self.is_simulated else get_time() - self.start_time
 
             datum = parsed_data.get_stat(stat)
-            print(datum, time)
+            # print(datum, time)
 
             self.datapoints[stat.value]["x"].append(time)
             self.datapoints[stat.value]["y"].append(datum)
@@ -226,9 +226,9 @@ class MainWindow(QMainWindow):
             return
         self.setpoints[self.currentStat] = self.ui.setpointSlider.value()
         if not self.is_simulated:
-            print("uploaded")
+            # print("uploaded")
             self.DataFeed.publish_change(self.currentStat, self.convertFromSlider())
-        print(self.convertFromSlider())
+        # print(self.convertFromSlider())
 
     @Slot(float)
     def sliderValueChange(self, value):

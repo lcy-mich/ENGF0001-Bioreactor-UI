@@ -12,7 +12,7 @@ class DataParser:
     
     def __init__(self, is_simulated, data):
         self.raw_data = data
-        print(data)
+        # print(data)
         self.is_simulated = is_simulated
     
     def get_setpoints(self):
@@ -35,7 +35,7 @@ class DataParser:
             return self.raw_data[stat_name]["mean"]
         
         for (stat_name, stat_data) in self.raw_data.items():
-            print(stat_name, stat.value)
+            # print(stat_name, stat.value)
             if stat_name == stat.value:
                 return float(stat_data)
     
@@ -59,6 +59,7 @@ class MQTTDataFeed(QThread):
         self.host = host
         self.port = port
         self.keep_alive = keep_alive
+        # self.connected = False
         
 
     def run(self):
@@ -67,21 +68,22 @@ class MQTTDataFeed(QThread):
     
     def publish_change(self, stat, value):
         msg = {"Subsystem" : stat.value, "Value" : value}
-        print(dumps(msg))
+        # print(dumps(msg))
         result = self.client.publish(MQTT_PUBLISH_TOPIC, dumps(msg))
         
         status = result[0]
         if status == 0:
-            print(f"Sent")
+            print(f"Sent {dumps(msg)}")
         else:
             print(f"Failed")
     
     def on_connect(self, client, userdata, flags, reason_code, properties):
         print(f"Connection succeeded with result code : {reason_code}, to topic {self.topic}")
         self.client.subscribe(self.topic)
+        # self.connected=True
 
     def on_message(self, client, userdata, msg):
-        print(msg.payload)
+        # print(msg.payload)
     
         self.signal.emit(loads(msg.payload))
     

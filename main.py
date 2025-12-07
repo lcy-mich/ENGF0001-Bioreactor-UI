@@ -24,13 +24,17 @@ class MainWindow(QMainWindow):
     @Slot()
     def initialInfoSetup(self):
 
+        self.initialDialog.exec()
+        if not self.initialDialog.succeed:
+            self.initialDialog.close()
+            if not hasattr(self, "ui"):
+                sysexit()
+            return
+        self.initialDialog.succeed = False
+
         if hasattr(self, "DataFeed"):
             self.DataFeed.terminate()
             del self.DataFeed
-
-        self.initialDialog.exec()
-        if not self.initialDialog.succeed:
-            self.close()
 
         self.host = self.initialDialog.ui.hostLine.text()
         self.port = int(self.initialDialog.ui.portLine.text())
@@ -57,7 +61,7 @@ class MainWindow(QMainWindow):
             Stat.Stirring.value : {"x":[], "y":[]}
         }
 
-        if hasattr(self.ui, "setpointSlider"):
+        if hasattr(self, "ui") and hasattr(self.ui, "setpointSlider"):
             self.ui.setpointSlider.setEnabled(not self.is_simulated)
             for graph in self.StatToGraph.values():
                 graph.getPlotItem().clear()
@@ -74,12 +78,10 @@ class MainWindow(QMainWindow):
             useNumba = USE_NUMBA,
         )
 
-
-        self.ui = Ui_MainWindow()
-
         self.initialDialog = InitialDialog()
         self.initialInfoSetup()
 
+        self.ui = Ui_MainWindow()
         self.ui.setupUi(self)       
         
         self.ui.setpointSlider.valueChanged.connect(self.sliderValueChange)

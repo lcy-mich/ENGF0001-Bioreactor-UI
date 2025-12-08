@@ -24,6 +24,14 @@ def on_message(client, userdata, msg):
     payload = loads(msg.payload)
     match payload["Subsystem"]:
         case "ph":
+            phsetpoint = payload["Value"]/2
+        case "temp":
+            tempsetpoint = payload["Value"]/2
+        case "stirring":
+            stirsetpoint = payload["Value"]/2
+    time.sleep(randint(1,5))
+    match payload["Subsystem"]:
+        case "ph":
             phsetpoint = payload["Value"]
         case "temp":
             tempsetpoint = payload["Value"]

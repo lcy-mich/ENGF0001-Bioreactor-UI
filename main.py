@@ -92,6 +92,7 @@ class MainWindow(QMainWindow):
         for stat, graph in self.StatToGraph.items():
             plotitem : qtgraph.PlotItem = graph.getPlotItem() # type: ignore
             y_axis = plotitem.getAxis("left")
+            
             y_axis.setLabel(f"{stat.value} {Info[stat]["Unit"]}")
 
             plotitem.getAxis("bottom").setLabel("Time (seconds)")
@@ -141,10 +142,10 @@ class MainWindow(QMainWindow):
         for stat, graph in self.StatToGraph.items():
             plotitem = graph.getPlotItem()
 
-            time = parsed_data.get_end_time() if self.is_simulated else get_time() - self.start_time
-
+            time = (parsed_data.get_end_time() if self.is_simulated else get_time()) - self.start_time
+            graph.setXRange(min=max(0,time-120), max=time)
             datum = parsed_data.get_stat(stat)
-            # print(datum, time)
+            print(datum, time)
 
             self.datapoints[stat.value]["x"].append(time)
             self.datapoints[stat.value]["y"].append(datum)

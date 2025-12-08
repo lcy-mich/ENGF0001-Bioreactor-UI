@@ -1,7 +1,13 @@
 import paho.mqtt.client as mqtt
 import time
-from json import dumps
+from json import dumps, loads
 from random import randint
+
+tempsetpoint = 25
+stirsetpoint = 800
+phsetpoint = 7.0
+
+lastjump = 0
 
 
 def on_connect(client, userdata, flags, reason_code):
@@ -12,10 +18,29 @@ def on_connect(client, userdata, flags, reason_code):
 
 
 def on_message(client, userdata, msg):
+    global phsetpoint, tempsetpoint, stirsetpoint
+
     print(msg.topic + " " + str(msg.payload))
+    payload = loads(msg.payload)
+    match payload["Subsystem"]:
+        case "ph":
+            phsetpoint = payload["Value"]
+        case "temp":
+            tempsetpoint = payload["Value"]
+        case "stirring":
+            stirsetpoint = payload["Value"]
+    
+def suddennoise(low, high):
+    global lastjump
+    if randint(1,1000) > 995 - (time.time() - lastjump):
+        lastjump = time.time()
+        print("JUMPED")
+        return randint(low, high)
+    else:
+        return 0
 
 def publish(client):
-    msg = {"temp" : randint(200, 400)/10, "stirring": randint(300,1500), "ph" : randint(500,900)/100}
+    msg = {"temp" : tempsetpoint + (randint(-25, 25)/10) + suddennoise(-5,5), "stirring": stirsetpoint + randint(-50,50) + suddennoise(-100,100), "ph" : phsetpoint+ (randint(-50,50)/100) + suddennoise(-1,1)}
     result = client.publish("bioreactor/sensor/data", dumps(msg))
     # result: [0, 1]
     status = result[0]

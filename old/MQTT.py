@@ -1,4 +1,6 @@
 import paho.mqtt.client as mqtt
+import logging
+from paho.mqtt.enums import CallbackAPIVersion
 import time
 from json import dumps
 
@@ -7,7 +9,7 @@ def on_connect(client, userdata, flags, reason_code):
     print(f"Connected with result code {reason_code}")
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("bioreactor/sensor/data")
+    client.subscribe("bioreactor_group_3/telemetry/summary")
 
 
 def on_message(client, userdata, msg):
@@ -24,10 +26,16 @@ def publish(client):
         print(f"Failed")
 
 if __name__ == "__main__":
-    mqttc = mqtt.Client()
+    mqttc = mqtt.Client(CallbackAPIVersion.VERSION2, "the ")
+    print("log")
+    mqttc.enable_logger()
+    print("connect")
     mqttc.on_connect = on_connect
     mqttc.on_message = on_message
-    mqttc.connect("broker.hivemq.com", 1883, 60)
-    mqttc.loop_start()
-    publish(mqttc)
-    mqttc.loop_stop()
+    print('start user')
+    mqttc.username_pw_set(username="group3", password="Group3abc")
+    print('strart connect')
+    mqttc.connect("26063fe98ec0480d93ee20fbab5cf154.s1.eu.hivemq.cloud", 8883, 60)
+    print("finished all")
+    mqttc.loop_forever()
+    # publish(mqttc)

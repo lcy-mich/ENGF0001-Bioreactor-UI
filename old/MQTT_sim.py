@@ -3,7 +3,7 @@ import time
 from json import dumps, loads
 from random import randint
 
-tempsetpoint = 25
+tempsetpoint = 35
 stirsetpoint = 800
 phsetpoint = 7.0
 

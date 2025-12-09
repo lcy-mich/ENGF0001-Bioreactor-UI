@@ -83,9 +83,12 @@ class MQTTDataFeed(QThread):
         # self.connected=True
 
     def on_message(self, client, userdata, msg):
-        # print(msg.payload)
+        print(msg.payload) 
+        try:
     
-        self.signal.emit(loads(msg.payload))
+            self.signal.emit(loads(msg.payload))
+        except:
+            return
     
     def __del__(self):
         self.client.disconnect()
